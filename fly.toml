@@ -7,7 +7,7 @@ app = 'webcafe'
 primary_region = 'fra'
 
 [http_service]
-  internal_port = 8080
+  internal_port = 3000
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -26,4 +26,4 @@ primary_region = 'fra'
 
 [env]
   DATABASE_URL = "/data/webcafe.db"
-  PORT = 8080
+  PORT = 3000
