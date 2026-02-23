@@ -1,0 +1,17 @@
+{
+  "name": "webcafe",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "express": "^5.2.1",
+    "webrtc": "^1.14.1",
+    "ws": "^8.19.0"
+  }
+}

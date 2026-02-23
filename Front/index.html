@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Arde's WebCafe</title>
+        <link rel="stylesheet" href="css/main.css">
+    </head>
+    <audio id="remoteAudio" autoplay playsinline controls style="display:none;"></audio>
+    <body>
+  
+        <!-- <img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/bearlatte.png" id="leftimg">
+        <img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/bearice.png" id="rightimg"> -->
+	
+	    <div class="wrapper">
+  
+            <div class="leftside">
+                <h2>leftside <img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/windowbuttons.png" align="right"></h2>
+                <div class="inner">
+                    <!-- <ul>
+                    <b><li><a href="">link 1</a></li>
+                    <li><a href="">link 2</a></li>
+                    <li><a href="">link 3</a></li>
+                    <li><a href="">link 4</a></li>
+                    <li><a href="">link 5</a></li></b>
+                    </ul>
+                    <center><img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/bearline.gif"></center> -->
+                    <ul>
+                        <li><p>WebRTC</p></li>
+                        <li><button id="startButton">Start Call</button></li>
+                    </ul>
+                    <audio id="remoteAudio" autoplay playsinline></audio>
+                </div>
+            </div>
+                
+            <div class="main">
+                <h1> Yo wassuup <img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/windowbuttons.png" align="right"></h1>
+                <div class="inner">
+                    <header>BearCafe.Online</header>
+                    <div id="chat">
+                        <div id="messages"></div>
+                        <hr>
+                        <input type="text" id="user" placeholder="Your name">
+                        <input type="text" id="text" placeholder="Type a message...">
+                        <button id="send-button" onclick="sendMessage()">Send</button>
+                    </div>
+                    <div class="footer">
+                        <div id="volume-meter" style="width: 100%; height: 20px; background: #2E2326; border-radius: 5px; margin-top: 10px; overflow: hidden;">
+                            <div id="volume-bar" style="width: 0%; height: 100%; background: #F4ACB7; transition: width 0.1s;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rightside">
+                <h3>rightside <img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/windowbuttons.png" align="right"></h3>
+                <div class="inner">
+                    <!-- <center><img src="https://file.garden/ZA_UJlkUN2HXHENQ/images/bearline.gif"></center>
+                    <p><b>5/1/2025</b><br>
+                    maybe you can put updates here!</p>
+                    
+                    <p><b>4/29/2025</b><br>
+                    or maybe a mini blog post</p>
+                    
+                    <p><b>4/27/2025</b><br>
+                    or maybe some art?</p>
+                    
+                    <p><b>4/23/2025</b><br>
+                    idk I'm not your parent, do what you want forever</p> -->
+                </div>  
+            </div>
+            
+        </div>
+        <script src="js/chat.js"></script>
+        <script src="js/vc.js"></script>
+    </body>
+</html>
