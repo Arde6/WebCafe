@@ -12,6 +12,95 @@ const candidateQueues = new Map();
 let joinButton = null;
 const remoteAudios = {}; // peerId -> <audio> element
 
+// --- Define all helper functions first ---
+
+// --- Initiate a call to a specific peer ---
+async function callPeer(peerId) {
+  const pc = getOrCreatePC(peerId);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  ws.send(JSON.stringify({ type: "offer", to: peerId, sdp: offer }));
+}
+
+// --- Create (or retrieve) a PeerConnection for a given peer ---
+function getOrCreatePC(peerId) {
+  if (peerConnections.has(peerId)) return peerConnections.get(peerId);
+
+  const pc = new RTCPeerConnection(config);
+  peerConnections.set(peerId, pc);
+
+  // Add local tracks
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
+
+  pc.ontrack = (event) => {
+    const stream = event.streams[0];
+    let audio = remoteAudios[peerId];
+    if (!audio) {
+      audio = document.createElement('audio');
+      audio.autoplay = true;
+      document.body.appendChild(audio);
+      remoteAudios[peerId] = audio;
+      startVolumeMeter(stream, peerId);
+    }
+    audio.srcObject = stream;
+  };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      ws.send(JSON.stringify({ type: "candidate", to: peerId, candidate: event.candidate }));
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
+      cleanupPeer(peerId);
+    }
+  };
+
+  return pc;
+}
+
+async function flushCandidateQueue(peerId) {
+  const queue = candidateQueues.get(peerId) || [];
+  const pc = peerConnections.get(peerId);
+  while (queue.length > 0) {
+    await pc.addIceCandidate(queue.shift());
+  }
+  candidateQueues.delete(peerId);
+}
+
+function cleanupPeer(peerId) {
+  const pc = peerConnections.get(peerId);
+  if (pc) { pc.close(); peerConnections.delete(peerId); }
+  const audio = remoteAudios[peerId];
+  if (audio) { audio.remove(); delete remoteAudios[peerId]; }
+}
+
+// --- Volume meter (per-peer) ---
+function startVolumeMeter(audioStream, peerId) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const source = audioContext.createMediaStreamSource(audioStream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256;
+  source.connect(analyser);
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const volumeBar = document.getElementById('volume-bar');
+  function update() {
+    analyser.getByteFrequencyData(dataArray);
+    const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+    if (volumeBar) volumeBar.style.width = Math.min(100, avg * 2.5) + "%";
+    requestAnimationFrame(update);
+  }
+  update();
+}
+
+function updateVoiceRosterUI(roster) {
+  console.log("Voice participants:", roster.map(p => p.user));
+}
+
+// --- Initialize voice call ---
 function initializeVoiceCall() {
   joinButton = document.getElementById('startButton');
   if (!ws) {
@@ -106,13 +195,13 @@ function setupVoiceMessageHandler() {
 function setupJoinButton() {
   if (!joinButton) return;
   joinButton.onclick = async () => {
-  if (!localStream) {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  }
-  ws.send(JSON.stringify({ type: "join-voice", user: username }));
-  joinButton.innerText = "In Call";
-  joinButton.disabled = true;
-};
+    if (!localStream) {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    ws.send(JSON.stringify({ type: "join-voice", user: username }));
+    joinButton.innerText = "In Call";
+    joinButton.disabled = true;
+  };
 }
 
 // Setup the join button after initialization
@@ -122,81 +211,6 @@ if (document.readyState === 'loading') {
   });
 } else {
   setTimeout(setupJoinButton, 150);
-}
-
-// --- Create (or retrieve) a PeerConnection for a given peer ---
-function getOrCreatePC(peerId) {
-  if (peerConnections.has(peerId)) return peerConnections.get(peerId);
-
-  const pc = new RTCPeerConnection(config);
-  peerConnections.set(peerId, pc);
-
-  // Add local tracks
-  if (localStream) {
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-  }
-
-  pc.ontrack = (event) => {
-    const stream = event.streams[0];
-    let audio = remoteAudios[peerId];
-    if (!audio) {
-      audio = document.createElement('audio');
-      audio.autoplay = true;
-      document.body.appendChild(audio);
-      remoteAudios[peerId] = audio;
-      startVolumeMeter(stream, peerId);
-    }
-    audio.srcObject = stream;
-  };
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      ws.send(JSON.stringify({ type: "candidate", to: peerId, candidate: event.candidate }));
-    }
-  };
-
-  pc.onconnectionstatechange = () => {
-    if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
-      cleanupPeer(peerId);
-    }
-  };
-
-  return pc;
-}
-
-async function flushCandidateQueue(peerId) {
-  const queue = candidateQueues.get(peerId) || [];
-  const pc = peerConnections.get(peerId);
-  while (queue.length > 0) {
-    await pc.addIceCandidate(queue.shift());
-  }
-  candidateQueues.delete(peerId);
-}
-
-function cleanupPeer(peerId) {
-  const pc = peerConnections.get(peerId);
-  if (pc) { pc.close(); peerConnections.delete(peerId); }
-  const audio = remoteAudios[peerId];
-  if (audio) { audio.remove(); delete remoteAudios[peerId]; }
-}
-
-// --- Volume meter (unchanged, but now per-peer) ---
-function startVolumeMeter(audioStream, peerId) {
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioContext.createMediaStreamSource(audioStream);
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 256;
-  source.connect(analyser);
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  // You can create a per-peer volume bar or reuse a single one
-  const volumeBar = document.getElementById('volume-bar');
-  function update() {
-    analyser.getByteFrequencyData(dataArray);
-    const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-    if (volumeBar) volumeBar.style.width = Math.min(100, avg * 2.5) + "%";
-    requestAnimationFrame(update);
-  }
-  update();
 }
 
 function updateVoiceRosterUI(roster) {
