@@ -9,14 +9,31 @@ const peerConnections = new Map();
 // Candidate queue per peer: peerId -> RTCIceCandidate[]
 const candidateQueues = new Map();
 
-const joinButton = document.getElementById('startButton');
+let joinButton = null;
 const remoteAudios = {}; // peerId -> <audio> element
 
-// --- Receive our assigned ID from server ---
-// Call this from your existing ws.addEventListener('message') handler,
-// or merge it in as shown below.
+function initializeVoiceCall() {
+  joinButton = document.getElementById('startButton');
+  if (!ws) {
+    console.warn('WebSocket not initialized yet');
+    return;
+  }
+  setupVoiceMessageHandler();
+}
 
-ws.addEventListener('message', async (event) => {
+// Wait for DOM to be ready before initializing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initializeVoiceCall, 100);
+  });
+} else {
+  setTimeout(initializeVoiceCall, 100);
+}
+
+// --- Receive our assigned ID from server ---
+function setupVoiceMessageHandler() {
+  if (!ws) return;
+  ws.addEventListener('message', async (event) => {
   let data;
   try {
     const raw = event.data instanceof Blob ? await event.data.text() : event.data;
@@ -83,9 +100,12 @@ ws.addEventListener('message', async (event) => {
     // Your existing chat handlers (history, message, etc.) go here
   }
 });
+}
 
 // --- Join the voice room ---
-joinButton.onclick = async () => {
+function setupJoinButton() {
+  if (!joinButton) return;
+  joinButton.onclick = async () => {
   if (!localStream) {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   }
@@ -93,13 +113,15 @@ joinButton.onclick = async () => {
   joinButton.innerText = "In Call";
   joinButton.disabled = true;
 };
+}
 
-// --- Initiate a call to a specific peer ---
-async function callPeer(peerId) {
-  const pc = getOrCreatePC(peerId);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  ws.send(JSON.stringify({ type: "offer", to: peerId, sdp: offer }));
+// Setup the join button after initialization
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(setupJoinButton, 150);
+  });
+} else {
+  setTimeout(setupJoinButton, 150);
 }
 
 // --- Create (or retrieve) a PeerConnection for a given peer ---
